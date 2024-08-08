@@ -29,7 +29,9 @@ export async function chatWith({ context_text }: ChatWithProps) {
     const chatSession = model.startChat({
       generationConfig,
     });
-    const result = await chatSession.sendMessage(promptString);
+    // const result = await chatSession.sendMessage(promptString);
+    const result = await chatSession.sendMessageStream(promptString);
+    
     return result;
   } catch (error) {
     console.log(

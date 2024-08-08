@@ -4,11 +4,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2.44.4";
 import { chatWith } from "./helpers/chat-with.ts";
 import { ipRateLimit, viewerRateLimit } from "./helpers/rate-limit.ts";
 import { Database } from "./supabase/db-types.ts";
-
+import {streamText } from "hono/streaming";
 const app = new Hono();
 
 app.get("/", (c) => {
-  return c.text("Hello Hono!");
+  return c.text("Hello Hono caht server");
 });
 
 interface ChatRequestBody {
@@ -35,8 +35,14 @@ app.post("/candidate/chat", async (c) => {
   );
   await viewerRateLimit({ c, kv, sb: supabaseClient, viewer_id });
   const chat_res = await chatWith({ context_text, prompt });
-  chat_res.response.text();
-  return c.json({ message: chat_res.response.text() }, 200);
+  const res_stream = chat_res.stream
+  
+  return streamText(c,async (stream)=>{
+    for await(const chunk of res_stream) {
+      console.log("========================= chunk ==========================",chunk)
+      stream.write(chunk.text());
+    }
+  });
 });
 
 Deno.serve(app.fetch);
