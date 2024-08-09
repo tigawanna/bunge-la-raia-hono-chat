@@ -9,6 +9,7 @@ interface RateLimitprops {
   kv: Deno.Kv;
   viewer_id: string;
   sb: SupabaseClient<Database>;
+  viewer_visit_count: number;
 }
 
 export async function ipRateLimit({ c, kv }: Pick<RateLimitprops,"c"|"kv">) {
@@ -19,22 +20,21 @@ export async function ipRateLimit({ c, kv }: Pick<RateLimitprops,"c"|"kv">) {
     if (!address) {
       return c.text( "address should be provided" , 400);
     }
-    const address_visit_count = await kv.get<number>([address, "-addressvisit-count"]);
+    const address_visit_count = await kv.get<number>([address, "ip-address-visit-count"]);
     if (address_visit_count?.value && address_visit_count?.value > 4) {
       return c.text( "Too many requests" , 429);
     }
-    await kv.set([address, "-addressvisit-count"], (address_visit_count?.value || 0) + 1, {
+    await kv.set([address, "ip-address-visit-count"], (address_visit_count?.value || 0) + 1, {
       expireIn: 24 * 60 * 60 * 1000 * 3,
     });
   } catch (error) {
     return c.text( "Something went wrong: " + error.message , 500);
   }
 }
-export async function viewerRateLimit({ c, kv, sb, viewer_id }: RateLimitprops) {
+export async function viewerRateLimit({ c, kv, sb, viewer_id, viewer_visit_count }: RateLimitprops) {
   try {
-    const viewer_visit_count = await kv.get<number>([viewer_id, "visit-count"]);
     // check if viewer has visited
-    if (!viewer_visit_count.value) {
+    if (!viewer_visit_count) {
       const { error } = await sb.from("users").select("*").eq("id", viewer_id).single();
       if (error) {
         return c.text("Unauthorized" , 401);
@@ -44,7 +44,7 @@ export async function viewerRateLimit({ c, kv, sb, viewer_id }: RateLimitprops) 
       });
     }
     //   check if viewer has visited 5 times in the last 5 dayss
-    if (viewer_visit_count.value === 5) {
+    if (viewer_visit_count === 5) {
       return c.text("Try again tommorow" , 429);
     }
   } catch (error) {
