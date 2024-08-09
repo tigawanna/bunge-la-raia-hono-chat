@@ -78,18 +78,19 @@ export async function chatWithVercelSDK({
   sb,
 }: ChatWithVercelProps) {
   const crafteMessages = await injectInitialContext({
-  candidate_id,messages,sb,viewer_id
-  })
-  console.log("================= crafteMessages ============", crafteMessages);
+    candidate_id,
+    messages,
+    sb,
+    viewer_id,
+  });
   const result = await streamText({
     model: geminiModel,
     system: `This is civilization game modelled on the kenyan political system , 
-      a user has some questions about this candidate ,impersonate the candidate based on the provided context try and give answers under 
-      100 words`,
+      a user has some questions about this candidate ,impersonate the candidate based on the provided context`,
     messages: crafteMessages,
-    onFinish({ text }) {
-      console.log("================= stream completed ============", text);
-    },
+
   });
+  // const result_type = result.toDataStreamResponse().body?.values();
+  // console.log(" ============= response data stream  ================ ", result_type);
   return result;
 }

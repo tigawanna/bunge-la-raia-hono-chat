@@ -17,17 +17,17 @@ export async function ipRateLimit({ c, kv }: Pick<RateLimitprops,"c"|"kv">) {
       remote: { address },
     } = getConnInfo(c);
     if (!address) {
-      return c.json({ message: "address should be provided" }, 400);
+      return c.text( "address should be provided" , 400);
     }
     const address_visit_count = await kv.get<number>([address, "-addressvisit-count"]);
     if (address_visit_count?.value && address_visit_count?.value > 4) {
-      return c.json({ message: "Too many requests" }, 429);
+      return c.text( "Too many requests" , 429);
     }
     await kv.set([address, "-addressvisit-count"], (address_visit_count?.value || 0) + 1, {
       expireIn: 24 * 60 * 60 * 1000 * 3,
     });
   } catch (error) {
-    return c.json({ message: "Something went wrong: " + error.message }, 500);
+    return c.text( "Something went wrong: " + error.message , 500);
   }
 }
 export async function viewerRateLimit({ c, kv, sb, viewer_id }: RateLimitprops) {
@@ -37,7 +37,7 @@ export async function viewerRateLimit({ c, kv, sb, viewer_id }: RateLimitprops) 
     if (!viewer_visit_count.value) {
       const { error } = await sb.from("users").select("*").eq("id", viewer_id).single();
       if (error) {
-        return c.json({ message: "Unauthorized" }, 401);
+        return c.text("Unauthorized" , 401);
       }
       await kv.set([viewer_id, "visit-count"], 0, {
         expireIn: 24 * 60 * 60 * 1000 * 3, // 3 day,
@@ -45,9 +45,9 @@ export async function viewerRateLimit({ c, kv, sb, viewer_id }: RateLimitprops) 
     }
     //   check if viewer has visited 5 times in the last 5 dayss
     if (viewer_visit_count.value === 5) {
-      return c.json({ message: "Try again tommorow" }, 429);
+      return c.text("Try again tommorow" , 429);
     }
   } catch (error) {
-    return c.json({ message: "Something went wrong: " + error.message }, 500);
+    return c.text("Something went wrong: " + error.message , 500);
   }
 }
